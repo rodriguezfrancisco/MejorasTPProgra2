@@ -1,8 +1,8 @@
 import Interfaces.*;
 import TDA.Arbol_Categoria;
 import TDA.DiccionarioUsuarios;
-import TDA.GrafoListaAdyacencia;
-import TDA.IndiceInvertidoHabilidades;
+import TDA.GrafoListaAdyacencia; // ACTUALIZADO
+import TDA.IndiceInvertidoHabilidades; // NUEVO
 import controller.GestorPerfil;
 import controller.GestorPostulaciones;
 import model.*;
@@ -17,15 +17,19 @@ public class ProgramaPrincipal {
         Scanner scanner = new Scanner(System.in);
 
         Arbol_Categoria catalogoGeneral = inicializarCatalogo();
+
         DiccionarioUsuarios plataforma = new DiccionarioUsuarios(100);
-
-        TDA.IndiceInvertidoHabilidades indiceHabilidades = new TDA.IndiceInvertidoHabilidades(200);
-
         GestorPerfil gestorPerfil = new GestorPerfil(10, catalogoGeneral);
+
         GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia(100, false);
         GestorPostulaciones gestorPostulaciones = new GestorPostulaciones(50);
 
+        //Instanciamos el índice invertido para búsquedas O(1)
+        IndiceInvertidoHabilidades indiceHabilidades = new IndiceInvertidoHabilidades(200);
+
+        // ACTUALIZADO: Le pasamos el índice al precargador
         precargarUsuarios(plataforma, redSocial, catalogoGeneral, indiceHabilidades);
+
         int opcion;
 
         System.out.println("=============================================");
@@ -40,12 +44,14 @@ public class ProgramaPrincipal {
             System.out.println("4. Deshacer ultimo cambio");
             System.out.println("5. Eliminar usuario de la plataforma");
             System.out.println("6. Conectar dos usuarios (Agregar Amistad)");
-            System.out.println("7. Ver recomendaciones y red de un usuario");
-            System.out.println("8. Gestion de postulaciones");
-            System.out.println("9. Buscar usuarios por perfil");
+            System.out.println("7. Eliminar conexión entre dos usuarios"); // NUEVA OPCIÓN
+            System.out.println("8. Ver recomendaciones y red de un usuario"); // Era la 7
+            System.out.println("9. Gestion de postulaciones"); // Era la 8
+            System.out.println("10. Buscar usuarios por perfil"); // Era la 9
             System.out.println("0. Salir");
 
-            opcion = SelectorPerfil.leerEnteroEnRango(scanner, "\nSeleccione una opcion: ", 0, 9);
+            // ACTUALIZADO: El rango ahora va hasta 10
+            opcion = SelectorPerfil.leerEnteroEnRango(scanner, "\nSeleccione una opcion: ", 0, 10);
 
             switch (opcion) {
                 case 1:
@@ -53,10 +59,10 @@ public class ProgramaPrincipal {
                     boolean exito = plataforma.insertar(nuevoUsuario);
                     if (exito) {
                         redSocial.insertarVertice(nuevoUsuario);
-
                         indiceHabilidades.indexarUsuario(nuevoUsuario);
-
-                        System.out.println("-> Usuario guardado exitosamente...");
+                        System.out.println("-> Usuario guardado exitosamente en la plataforma, red social e índice.");
+                    } else {
+                        System.out.println("-> ERROR inesperado al guardar el usuario.");
                     }
                     break;
 
@@ -83,7 +89,6 @@ public class ProgramaPrincipal {
                     } else {
                         System.out.println("\n-> Error: No existe ningun usuario con el ID " + idEditar);
                     }
-
                     break;
 
                 case 4:
@@ -96,7 +101,6 @@ public class ProgramaPrincipal {
                     } else {
                         System.out.println("\n-> Error: No existe ningun usuario con el ID " + idDeshacer);
                     }
-
                     break;
 
                 case 5:
@@ -111,7 +115,6 @@ public class ProgramaPrincipal {
                     } else {
                         System.out.println("\n-> Error: No se encontro un usuario con ese ID.");
                     }
-
                     break;
 
                 case 6:
@@ -131,21 +134,42 @@ public class ProgramaPrincipal {
                     break;
 
                 case 7:
+                    System.out.println("\n--- ELIMINAR CONEXIÓN ---");
+                    int idElim1 = SelectorPerfil.leerEntero(scanner, "Ingrese el ID del primer usuario: ");
+                    int idElim2 = SelectorPerfil.leerEntero(scanner, "Ingrese el ID del segundo usuario: ");
+
+                    Usuario uElim1 = plataforma.buscar(idElim1);
+                    Usuario uElim2 = plataforma.buscar(idElim2);
+
+                    if (uElim1 != null && uElim2 != null) {
+                        // Verificamos si realmente son amigos antes de intentar borrar
+                        if (redSocial.existeArista(uElim1, uElim2)) {
+                            redSocial.eliminarArista(uElim1, uElim2);
+                            System.out.println("-> La conexión entre " + uElim1.getNombre() + " y " + uElim2.getNombre() + " ha sido eliminada.");
+                        } else {
+                            System.out.println("-> No se pudo eliminar: Estos usuarios no estaban conectados.");
+                        }
+                    } else {
+                        System.out.println("-> Error: Uno o ambos IDs no existen en la plataforma.");
+                    }
+                    break;
+
+                case 8:
                     System.out.println("\n--- MI RED Y RECOMENDACIONES ---");
                     int idRed = SelectorPerfil.leerEntero(scanner, "Ingrese el ID del usuario: ");
                     Usuario uRed = plataforma.buscar(idRed);
 
                     if (uRed != null) {
                         System.out.println();
-                        redSocial.bfsNiveles(uRed); // Muestra los niveles de separación
+                        redSocial.bfsNiveles(uRed);
                         System.out.println();
-                        redSocial.recomendarAmigos(uRed); // Sugiere los de nivel 2
+                        redSocial.recomendarAmigos(uRed);
                     } else {
                         System.out.println("-> Error: Usuario no encontrado.");
                     }
                     break;
-                    
-                case 8:
+
+                case 9:
                     int subOpcion8;
                     do {
                         System.out.println("\n--- GESTIÓN DE POSTULACIONES ---");
@@ -161,14 +185,12 @@ public class ProgramaPrincipal {
                                 System.out.println("\n-- Registrar Nueva Postulación --");
                                 int idCandidato = SelectorPerfil.leerEntero(scanner, "Ingrese el ID (DNI) del usuario registrado: ");
 
-                                // Buscamos al usuario en la tabla hash de forma instantánea
                                 Usuario candidato = plataforma.buscar(idCandidato);
 
                                 if (candidato == null) {
                                     System.out.println("❌ Error: No existe ningún usuario registrado con el ID " + idCandidato);
                                     System.out.println("Debe crearlo primero en el menú principal.");
                                 } else if (candidato.getPerfil() == null) {
-                                    // Opcional: validar que tenga perfil antes de postularse
                                     System.out.println("❌ Error: El usuario " + candidato.getNombre() + " todavía no tiene un perfil configurado.");
                                     System.out.println("Vaya a 'Editar usuario' (Opción 3) para agregarle un perfil.");
                                 } else {
@@ -183,7 +205,6 @@ public class ProgramaPrincipal {
                                     int puestoOpcion = SelectorPerfil.leerEnteroEnRango(scanner, "Opción: ", 1, puestos.length);
                                     Postulacion puestoElegido = puestos[puestoOpcion - 1];
 
-                                    // Pasamos el objeto Usuario completo a la solicitud
                                     gestorPostulaciones.recibirSolicitud(new SolicitudEmpleo(candidato, puestoElegido));
                                 }
                                 break;
@@ -201,10 +222,10 @@ public class ProgramaPrincipal {
                     } while (subOpcion8 != 0);
                     break;
 
-                case 9:
+                case 10:
                     BuscadorPerfilesUI.menuBuscar(scanner, plataforma, catalogoGeneral, indiceHabilidades);
                     break;
-                    
+
                 case 0:
                     System.out.println("\nSaliendo del sistema... ¡Hasta luego!");
                     break;
@@ -524,33 +545,30 @@ public class ProgramaPrincipal {
         return raiz;
     }
 
-    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz, IndiceInvertidoHabilidades indiceHabilidades) {
+    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz, IndiceInvertidoHabilidades indice) {
         Componente[] especialidades = raiz.getHijos();
 
-        // 1. Buscamos las Especialidades principales en el árbol
         Arbol_Categoria tecnologia = buscarCategoria(especialidades, "Tecnologia");
         Arbol_Categoria diseno = buscarCategoria(especialidades, "Diseno");
         Arbol_Categoria negocios = buscarCategoria(especialidades, "Negocios");
 
-        // --- USUARIO 1: Desarrollador (Tecnología > Desarrollo) ---
         if (tecnologia != null) {
             Arbol_Categoria desarrollo = buscarCategoria(tecnologia.getHijos(), "Desarrollo");
             if (desarrollo != null) {
                 Habilidad hJava = buscarHabilidad(desarrollo, "Java");
                 Habilidad hPython = buscarHabilidad(desarrollo, "Python");
-                Habilidad hCom = buscarHabilidad(desarrollo, "Comunicacion"); // Inyectada automáticamente
+                Habilidad hCom = buscarHabilidad(desarrollo, "Comunicacion");
 
                 Habilidad[] habsU1 = { hJava, hPython, hCom };
                 Perfil perfilU1 = new Perfil(tecnologia, desarrollo, habsU1);
                 Usuario u1 = new Usuario("Carlos Gómez", 1, "carlos@mail.com", perfilU1);
 
                 plataforma.insertar(u1);
-                indiceHabilidades.indexarUsuario(u1);
                 redSocial.insertarVertice(u1);
+                indice.indexarUsuario(u1);
             }
         }
 
-        // --- USUARIO 2: Diseñadora (Diseño > UX/UI) ---
         if (diseno != null) {
             Arbol_Categoria uxui = buscarCategoria(diseno.getHijos(), "UX/UI");
             if (uxui != null) {
@@ -563,12 +581,11 @@ public class ProgramaPrincipal {
                 Usuario u2 = new Usuario("Marta Rodríguez", 2, "marta@mail.com", perfilU2);
 
                 plataforma.insertar(u2);
-                indiceHabilidades.indexarUsuario(u2);
                 redSocial.insertarVertice(u2);
+                indice.indexarUsuario(u2);
             }
         }
 
-        // --- USUARIO 3: Project Manager (Negocios > Project Management) ---
         if (negocios != null) {
             Arbol_Categoria pm = buscarCategoria(negocios.getHijos(), "Project Management");
             if (pm != null) {
@@ -581,15 +598,14 @@ public class ProgramaPrincipal {
                 Usuario u3 = new Usuario("Esteban Pérez", 3, "esteban@mail.com", perfilU3);
 
                 plataforma.insertar(u3);
-                indiceHabilidades.indexarUsuario(u3);
                 redSocial.insertarVertice(u3);
+                indice.indexarUsuario(u3);
             }
         }
 
-        System.out.println("[Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
+        System.out.println("⚙️ [Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
     }
 
-    // Busca un Arbol_Categoria por su nombre dentro de un arreglo de Componentes
     private static Arbol_Categoria buscarCategoria(Componente[] componentes, String nombre) {
         if (componentes == null) return null;
         for (int i = 0; i < componentes.length; i++) {
@@ -600,7 +616,6 @@ public class ProgramaPrincipal {
         return null;
     }
 
-    // Busca una Habilidad por su nombre dentro de una subcategoría
     private static Habilidad buscarHabilidad(Arbol_Categoria subcategoria, String nombre) {
         if (subcategoria == null) return null;
         Componente[] habilidades = subcategoria.getHijos();
