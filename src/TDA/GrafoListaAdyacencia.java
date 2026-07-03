@@ -1,22 +1,33 @@
 package TDA;
+
 import model.Usuario;
 import Interfaces.IGrafo;
 
-public class GrafoMatrizAdyacencia implements IGrafo {
+public class GrafoListaAdyacencia implements IGrafo {
+
+    // Nodo interno para manejar la lista enlazada de conexiones de cada vértice
+    private class NodoArista {
+        int indiceDestino;
+        NodoArista siguiente;
+
+        public NodoArista(int indiceDestino) {
+            this.indiceDestino = indiceDestino;
+            this.siguiente = null;
+        }
+    }
 
     private Usuario[] vertices;
-    private int[][] matriz;
+    private NodoArista[] listasAdyacencia; // Arreglo de listas enlazadas
     private int cantidad;
     private int capacidad;
     private boolean dirigido;
 
-    public GrafoMatrizAdyacencia(int capacidad, boolean dirigido) {
+    public GrafoListaAdyacencia(int capacidad, boolean dirigido) {
         this.capacidad = capacidad;
         this.dirigido = dirigido;
         this.cantidad = 0;
-
         this.vertices = new Usuario[capacidad];
-        this.matriz = new int[capacidad][capacidad];
+        this.listasAdyacencia = new NodoArista[capacidad];
     }
 
     @Override
@@ -30,6 +41,7 @@ public class GrafoMatrizAdyacencia implements IGrafo {
             return;
         }
         vertices[cantidad] = vertice;
+        listasAdyacencia[cantidad] = null; // Inicializa la lista de amigos vacía
         cantidad++;
     }
 
@@ -57,9 +69,20 @@ public class GrafoMatrizAdyacencia implements IGrafo {
             return;
         }
 
-        matriz[posOrigen][posDestino] = 1;
+        if (existeArista(origen, destino)) {
+            return; // Conexión ya existente
+        }
+
+        // Insertar al inicio de la lista del nodo origen
+        NodoArista nuevoNodo = new NodoArista(posDestino);
+        nuevoNodo.siguiente = listasAdyacencia[posOrigen];
+        listasAdyacencia[posOrigen] = nuevoNodo;
+
+        // Si no es dirigido, se inserta la relación inversa
         if (!dirigido) {
-            matriz[posDestino][posOrigen] = 1;
+            NodoArista nuevoNodoVuelta = new NodoArista(posOrigen);
+            nuevoNodoVuelta.siguiente = listasAdyacencia[posDestino];
+            listasAdyacencia[posDestino] = nuevoNodoVuelta;
         }
     }
 
@@ -72,10 +95,30 @@ public class GrafoMatrizAdyacencia implements IGrafo {
             return;
         }
 
-        matriz[posOrigen][posDestino] = 0;
+        listasAdyacencia[posOrigen] = eliminarNodoDeLista(listasAdyacencia[posOrigen], posDestino);
+
         if (!dirigido) {
-            matriz[posDestino][posOrigen] = 0;
+            listasAdyacencia[posDestino] = eliminarNodoDeLista(listasAdyacencia[posDestino], posOrigen);
         }
+    }
+
+    // Método auxiliar para remover un destino específico de una lista enlazada
+    private NodoArista eliminarNodoDeLista(NodoArista cabeza, int destino) {
+        if (cabeza == null) return null;
+
+        if (cabeza.indiceDestino == destino) {
+            return cabeza.siguiente;
+        }
+
+        NodoArista actual = cabeza;
+        while (actual.siguiente != null) {
+            if (actual.siguiente.indiceDestino == destino) {
+                actual.siguiente = actual.siguiente.siguiente;
+                break;
+            }
+            actual = actual.siguiente;
+        }
+        return cabeza;
     }
 
     @Override
@@ -86,7 +129,15 @@ public class GrafoMatrizAdyacencia implements IGrafo {
         if (posOrigen == -1 || posDestino == -1) {
             return false;
         }
-        return matriz[posOrigen][posDestino] == 1;
+
+        NodoArista actual = listasAdyacencia[posOrigen];
+        while (actual != null) {
+            if (actual.indiceDestino == posDestino) {
+                return true;
+            }
+            actual = actual.siguiente;
+        }
+        return false;
     }
 
     @Override
@@ -94,26 +145,30 @@ public class GrafoMatrizAdyacencia implements IGrafo {
         int pos = obtenerIndice(vertice);
         if (pos == -1) return;
 
+        // 1. Limpiar referencias y reajustar índices internos de las aristas remanentes
+        for (int i = 0; i < cantidad; i++) {
+            // Eliminar cualquier enlace directo al nodo que deja de existir
+            listasAdyacencia[i] = eliminarNodoDeLista(listasAdyacencia[i], pos);
+
+            // Decrementar los índices mayores a 'pos' porque los elementos del arreglo se van a desplazar
+            NodoArista actual = listasAdyacencia[i];
+            while (actual != null) {
+                if (actual.indiceDestino > pos) {
+                    actual.indiceDestino--;
+                }
+                actual = actual.siguiente;
+            }
+        }
+
+        // 2. Desplazar los arreglos principales hacia la izquierda
         for (int i = pos; i < cantidad - 1; i++) {
             vertices[i] = vertices[i + 1];
-        }
-        for (int i = pos; i < cantidad - 1; i++) {
-            for (int j = 0; j < cantidad; j++) {
-                matriz[i][j] = matriz[i + 1][j];
-            }
-        }
-        for (int j = pos; j < cantidad - 1; j++) {
-            for (int i = 0; i < cantidad; i++) {
-                matriz[i][j] = matriz[i][j + 1];
-            }
+            listasAdyacencia[i] = listasAdyacencia[i + 1];
         }
 
         cantidad--;
         vertices[cantidad] = null;
-        for (int i = 0; i < capacidad; i++) {
-            matriz[cantidad][i] = 0;
-            matriz[i][cantidad] = 0;
-        }
+        listasAdyacencia[cantidad] = null;
     }
 
     @Override
@@ -127,6 +182,7 @@ public class GrafoMatrizAdyacencia implements IGrafo {
 
     @Override
     public void mostrarMatriz() {
+        // Mantiene el contrato visual de la interfaz imprimiendo el estado como matriz simétrica
         System.out.println("Matriz de Conexiones:");
         System.out.print("         ");
         for (int i = 0; i < cantidad; i++) {
@@ -137,7 +193,16 @@ public class GrafoMatrizAdyacencia implements IGrafo {
         for (int i = 0; i < cantidad; i++) {
             System.out.printf("%-9s", vertices[i].getNombre());
             for (int j = 0; j < cantidad; j++) {
-                System.out.printf("%-9d", matriz[i][j]);
+                int conectado = 0;
+                NodoArista actual = listasAdyacencia[i];
+                while (actual != null) {
+                    if (actual.indiceDestino == j) {
+                        conectado = 1;
+                        break;
+                    }
+                    actual = actual.siguiente;
+                }
+                System.out.printf("%-9d", conectado);
             }
             System.out.println();
         }
@@ -161,10 +226,12 @@ public class GrafoMatrizAdyacencia implements IGrafo {
         visitados[v] = true;
         System.out.print(vertices[v] + " ");
 
-        for (int i = 0; i < cantidad; i++) {
-            if (matriz[v][i] == 1 && !visitados[i]) {
-                dfsRecursivo(i, visitados);
+        NodoArista actual = listasAdyacencia[v];
+        while (actual != null) {
+            if (!visitados[actual.indiceDestino]) {
+                dfsRecursivo(actual.indiceDestino, visitados);
             }
+            actual = actual.siguiente;
         }
     }
 
@@ -173,7 +240,7 @@ public class GrafoMatrizAdyacencia implements IGrafo {
         int[] niveles = calcularNivelesBFS(usuario);
         if (niveles == null) return;
 
-        System.out.println("Niveles de conexión para " + usuario );
+        System.out.println("Niveles de conexión para " + usuario);
         for (int i = 0; i < cantidad; i++) {
             if (niveles[i] > 0) {
                 System.out.println(" - Nivel " + niveles[i] + " (" + getNivelDesc(niveles[i]) + "): " + vertices[i]);
@@ -210,9 +277,10 @@ public class GrafoMatrizAdyacencia implements IGrafo {
 
         int[] niveles = new int[cantidad];
         for (int i = 0; i < cantidad; i++) {
-            niveles[i] = -1; // -1 significa que aún no ha sido visitado
+            niveles[i] = -1; // -1 define que el vértice no fue visitado aún
         }
 
+        // Simulación de Cola estática usando un arreglo nativo
         int[] cola = new int[capacidad];
         int frente = 0;
         int fin = 0;
@@ -225,13 +293,15 @@ public class GrafoMatrizAdyacencia implements IGrafo {
             int actual = cola[frente];
             frente++;
 
-            for (int i = 0; i < cantidad; i++) {
-                if (matriz[actual][i] == 1 && niveles[i] == -1) {
-                    niveles[i] = niveles[actual] + 1;
-
-                    cola[fin] = i;
+            // Recorrer los vecinos a través de la lista de adyacencia del nodo actual
+            NodoArista vecino = listasAdyacencia[actual];
+            while (vecino != null) {
+                if (niveles[vecino.indiceDestino] == -1) {
+                    niveles[vecino.indiceDestino] = niveles[actual] + 1;
+                    cola[fin] = vecino.indiceDestino;
                     fin++;
                 }
+                vecino = vecino.siguiente;
             }
         }
 

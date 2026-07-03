@@ -1,7 +1,7 @@
 import Interfaces.*;
 import TDA.Arbol_Categoria;
 import TDA.DiccionarioUsuarios;
-import TDA.GrafoMatrizAdyacencia;
+import TDA.GrafoListaAdyacencia;
 import controller.GestorPerfil;
 import controller.GestorPostulaciones;
 import model.*;
@@ -19,7 +19,7 @@ public class ProgramaPrincipal {
 
         DiccionarioUsuarios plataforma = new DiccionarioUsuarios(100);
         GestorPerfil gestorPerfil = new GestorPerfil(10, catalogoGeneral);
-        GrafoMatrizAdyacencia redSocial = new GrafoMatrizAdyacencia(100, false);
+        GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia(100, false);
         GestorPostulaciones gestorPostulaciones = new GestorPostulaciones(50);
 
         precargarUsuarios(plataforma, redSocial, catalogoGeneral);
@@ -523,7 +523,7 @@ public class ProgramaPrincipal {
         return raiz;
     }
 
-    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoMatrizAdyacencia redSocial, Arbol_Categoria raiz) {
+    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz) {
         Componente[] especialidades = raiz.getHijos();
 
         // 1. Buscamos las Especialidades principales en el árbol

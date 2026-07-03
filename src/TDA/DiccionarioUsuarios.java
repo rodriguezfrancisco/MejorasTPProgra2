@@ -55,10 +55,47 @@ public class DiccionarioUsuarios {
         }
 
         cantidadElementos++;
+
+        // 3. Verificación del Factor de Carga para Redimensionamiento Automático
+        // Si la ocupación supera o iguala el 75%, duplicamos el tamaño interno de la tabla hash
+        if ((double) cantidadElementos / capacidad >= 0.75) {
+            rehash();
+        }
+
         return true; // Guardado exitoso
     }
 
-    // Buscar un usuario de forma instantánea usando su ID
+    // Método privado encargado de redistribuir los elementos en un nuevo arreglo ampliado
+    private void rehash() {
+        int nuevaCapacidad = capacidad * 2;
+        Nodo[] nuevaTabla = new Nodo[nuevaCapacidad];
+
+        // Recorremos la tabla vieja posición por posición
+        for (int i = 0; i < capacidad; i++) {
+            Nodo actual = tabla[i];
+
+            // Iteramos sobre la lista enlazada de colisiones de cada celda
+            while (actual != null) {
+                Nodo siguiente = actual.siguiente; // Guardamos la referencia al resto de la lista vieja
+
+                // Recalculamos el índice usando la nueva capacidad del arreglo
+                int nuevoIndice = Math.abs(actual.usuario.getId()) % nuevaCapacidad;
+
+                // Insertamos el nodo al principio de la nueva lista enlazada correspondiente
+                actual.siguiente = nuevaTabla[nuevoIndice];
+                nuevaTabla[nuevoIndice] = actual;
+
+                actual = siguiente;
+            }
+        }
+
+
+        this.tabla = nuevaTabla;
+        this.capacidad = nuevaCapacidad;
+        System.out.println("[Sistema] Rehashing ejecutado con éxito. Nueva capacidad de la plataforma: " + nuevaCapacidad);
+    }
+
+
     public Usuario buscar(int id) {
         int indice = funcionHash(id);
         Nodo actual = tabla[indice];
@@ -71,7 +108,7 @@ public class DiccionarioUsuarios {
             actual = actual.siguiente;
         }
 
-        return null; // El usuario no existe en el sistema
+        return null;
     }
 
     // Eliminar un usuario por su ID
@@ -105,8 +142,7 @@ public class DiccionarioUsuarios {
     /**
      * Obtiene todos los usuarios en la plataforma.
      * Útil para realizar búsquedas complejas sin filtro de ID.
-     * <p>
-     * Complejidad: O(n) donde n es la cantidad de elementos
+     * * Complejidad: O(n) donde n es la cantidad de elementos
      *
      * @return Array de todos los usuarios registrados
      */
@@ -132,5 +168,4 @@ public class DiccionarioUsuarios {
 
         return usuarios;
     }
-
 }
