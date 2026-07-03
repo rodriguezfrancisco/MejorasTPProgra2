@@ -2,6 +2,7 @@ import Interfaces.*;
 import TDA.Arbol_Categoria;
 import TDA.DiccionarioUsuarios;
 import TDA.GrafoListaAdyacencia;
+import TDA.IndiceInvertidoHabilidades;
 import controller.GestorPerfil;
 import controller.GestorPostulaciones;
 import model.*;
@@ -16,14 +17,15 @@ public class ProgramaPrincipal {
         Scanner scanner = new Scanner(System.in);
 
         Arbol_Categoria catalogoGeneral = inicializarCatalogo();
-
         DiccionarioUsuarios plataforma = new DiccionarioUsuarios(100);
+
+        TDA.IndiceInvertidoHabilidades indiceHabilidades = new TDA.IndiceInvertidoHabilidades(200);
+
         GestorPerfil gestorPerfil = new GestorPerfil(10, catalogoGeneral);
         GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia(100, false);
         GestorPostulaciones gestorPostulaciones = new GestorPostulaciones(50);
 
-        precargarUsuarios(plataforma, redSocial, catalogoGeneral);
-
+        precargarUsuarios(plataforma, redSocial, catalogoGeneral, indiceHabilidades);
         int opcion;
 
         System.out.println("=============================================");
@@ -50,11 +52,11 @@ public class ProgramaPrincipal {
                     Usuario nuevoUsuario = gestorPerfil.completarUsuario(scanner, plataforma);
                     boolean exito = plataforma.insertar(nuevoUsuario);
                     if (exito) {
-                        // 2. LO AGREGAMOS AL GRAFO TAMBIÉN
                         redSocial.insertarVertice(nuevoUsuario);
-                        System.out.println("-> Usuario guardado exitosamente en la plataforma y en la red.");
-                    } else {
-                        System.out.println("-> ERROR inesperado al guardar el usuario.");
+
+                        indiceHabilidades.indexarUsuario(nuevoUsuario);
+
+                        System.out.println("-> Usuario guardado exitosamente...");
                     }
                     break;
 
@@ -198,10 +200,9 @@ public class ProgramaPrincipal {
                         }
                     } while (subOpcion8 != 0);
                     break;
-                    
+
                 case 9:
-                    // NUEVA OPCIÓN: Búsqueda de usuarios por perfil
-                    BuscadorPerfilesUI.menuBuscar(scanner, plataforma, catalogoGeneral);
+                    BuscadorPerfilesUI.menuBuscar(scanner, plataforma, catalogoGeneral, indiceHabilidades);
                     break;
                     
                 case 0:
@@ -523,7 +524,7 @@ public class ProgramaPrincipal {
         return raiz;
     }
 
-    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz) {
+    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz, IndiceInvertidoHabilidades indiceHabilidades) {
         Componente[] especialidades = raiz.getHijos();
 
         // 1. Buscamos las Especialidades principales en el árbol
@@ -544,6 +545,7 @@ public class ProgramaPrincipal {
                 Usuario u1 = new Usuario("Carlos Gómez", 1, "carlos@mail.com", perfilU1);
 
                 plataforma.insertar(u1);
+                indiceHabilidades.indexarUsuario(u1);
                 redSocial.insertarVertice(u1);
             }
         }
@@ -561,6 +563,7 @@ public class ProgramaPrincipal {
                 Usuario u2 = new Usuario("Marta Rodríguez", 2, "marta@mail.com", perfilU2);
 
                 plataforma.insertar(u2);
+                indiceHabilidades.indexarUsuario(u2);
                 redSocial.insertarVertice(u2);
             }
         }
@@ -578,11 +581,12 @@ public class ProgramaPrincipal {
                 Usuario u3 = new Usuario("Esteban Pérez", 3, "esteban@mail.com", perfilU3);
 
                 plataforma.insertar(u3);
+                indiceHabilidades.indexarUsuario(u3);
                 redSocial.insertarVertice(u3);
             }
         }
 
-        System.out.println("⚙️ [Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
+        System.out.println("[Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
     }
 
     // Busca un Arbol_Categoria por su nombre dentro de un arreglo de Componentes

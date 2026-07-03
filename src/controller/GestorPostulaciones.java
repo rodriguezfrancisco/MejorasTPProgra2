@@ -1,32 +1,31 @@
 package controller;
 
-import TDA.Cola;
+import TDA.ColaPrioridadEstatica;
 import model.SolicitudEmpleo;
 import model.Usuario;
 import view.SelectorPerfil;
 
 public class GestorPostulaciones {
-    private Cola<SolicitudEmpleo> colaDeEspera;
 
+    // Instanciamos el TDA diseñado en clase
+    private ColaPrioridadEstatica colaDeEspera;
 
     public GestorPostulaciones(int capacidadMaxima) {
-        this.colaDeEspera = new Cola<>(capacidadMaxima);
+        this.colaDeEspera = new ColaPrioridadEstatica(capacidadMaxima);
     }
-
 
     public void recibirSolicitud(SolicitudEmpleo solicitud) {
         if (!colaDeEspera.estaLlena()) {
-            colaDeEspera.encolar(solicitud);
-            System.out.println("Solicitud registrada con éxito: " + solicitud);
+            colaDeEspera.insertar(solicitud);
+            System.out.println("✅ Solicitud registrada y encolada por relevancia: " + solicitud);
         } else {
-            System.out.println("No se pudo registrar la solicitud, intente nuevamente.");
+            System.out.println("No se pudo registrar la solicitud, la cola está llena.");
         }
     }
 
-
     public void procesarSiguienteSolicitud() {
         if (!colaDeEspera.estaVacia()) {
-            SolicitudEmpleo proxima = colaDeEspera.desencolar();
+            SolicitudEmpleo proxima = colaDeEspera.eliminar();
             System.out.println("\n Procesando " + proxima + "...");
             System.out.println("   [Resultado]: Perfil evaluado con éxito.");
         } else {
@@ -34,23 +33,23 @@ public class GestorPostulaciones {
         }
     }
 
-
     public void verProximaSolicitud() {
         SolicitudEmpleo proxima = colaDeEspera.frente();
         if (proxima != null) {
-            System.out.println(" Siguiente en la fila de espera: " + proxima);
+            System.out.println("\n Siguiente candidato recomendado por el algoritmo: " + proxima);
         } else {
-            System.out.println("La cola está vacía.");
+            System.out.println("\n La cola de postulaciones está vacía.");
         }
     }
 
     public void evaluarSiguienteSolicitud(java.util.Scanner scanner) {
         if (!colaDeEspera.estaVacia()) {
+            // Evaluamos al candidato con mayor Score (frente de la cola)
             SolicitudEmpleo proxima = colaDeEspera.frente();
             Usuario candidato = proxima.getPostulante();
 
             System.out.println("\n=============================================");
-            System.out.println("📋 EVALUANDO POSTULACIÓN");
+            System.out.println("📋 EVALUANDO CANDIDATO DE ALTA PRIORIDAD");
             System.out.println("=============================================");
             System.out.println("Puesto requerido: " + proxima.getPuesto().getNombrePuesto());
             System.out.println("Empresa: " + proxima.getPuesto().getEmpresa());
@@ -58,6 +57,7 @@ public class GestorPostulaciones {
             System.out.println("---------------------------------------------");
             System.out.println("👤 Candidato: " + candidato.getNombre() + " (ID: " + candidato.getId() + ")");
             System.out.println("✉️ Mail: " + candidato.getMail());
+            System.out.println("⭐ SCORE DE MATCHING: " + proxima.calcularScoreMatching() + " puntos");
             System.out.println("🛠️ Perfil del candidato:");
             System.out.println("   " + candidato.getPerfil().toString());
             System.out.println("=============================================\n");
@@ -65,18 +65,18 @@ public class GestorPostulaciones {
             System.out.println("¿Qué decisión desea tomar con este candidato?");
             System.out.println("1. Aceptar postulación");
             System.out.println("2. Rechazar postulación");
-            System.out.println("0. Cancelar revisión (dejar al candidato primero en la fila)");
+            System.out.println("0. Cancelar revisión (dejar al candidato en la cima de la cola)");
 
             int decision = SelectorPerfil.leerEnteroEnRango(scanner, "Opción: ", 0, 2);
 
             if (decision == 1) {
-                colaDeEspera.desencolar();
+                colaDeEspera.eliminar();
                 System.out.println("✅ Postulación ACEPTADA. El candidato fue procesado.");
             } else if (decision == 2) {
-                colaDeEspera.desencolar();
+                colaDeEspera.eliminar();
                 System.out.println("❌ Postulación RECHAZADA. El candidato fue procesado.");
             } else {
-                System.out.println("⚠️ Operación cancelada. La postulación sigue esperando en la fila.");
+                System.out.println("⚠️ Operación cancelada. La postulación sigue liderando la cola de prioridad.");
             }
         } else {
             System.out.println("No hay solicitudes pendientes en este momento.");
