@@ -2,7 +2,6 @@ package view;
 
 import TDA.Arbol_Categoria;
 import TDA.DiccionarioUsuarios;
-import TDA.IndiceInvertidoHabilidades; // Importación del nuevo TDA optimizado
 import Interfaces.Componente;
 import controller.BuscadorPerfiles;
 import model.Usuario;
@@ -16,8 +15,7 @@ public class BuscadorPerfilesUI {
     public static void menuBuscar(
             java.util.Scanner scanner,
             DiccionarioUsuarios plataforma,
-            Arbol_Categoria catalogoRaiz,
-            IndiceInvertidoHabilidades indiceHabilidades) {
+            Arbol_Categoria catalogoRaiz) {
 
         if (plataforma.getCantidadElementos() == 0) {
             System.out.println("\n No hay usuarios registrados en la plataforma.");
@@ -29,7 +27,7 @@ public class BuscadorPerfilesUI {
         System.out.println("1. Por Especialidad");
         System.out.println("2. Por Especialidad + Subespecialidad");
         System.out.println("3. Por Especialidad + Subespecialidad + Habilidad");
-        System.out.println("4. Solo por Habilidad (Búsqueda Indexada Instantánea)");
+        System.out.println("4. Solo por Habilidad");
         System.out.println("5. Por Subespecialidad");
         System.out.println("0. Cancelar");
 
@@ -60,12 +58,7 @@ public class BuscadorPerfilesUI {
                 break;
             case 4:
                 habilidad = preguntarHabilidad(scanner);
-                // OPTIMIZACIÓN: Resolución directa mediante Tabla Hash del Índice Invertido
-                // Complejidad temporal reducida drásticamente de O(N) a O(1) + O(K)
-                Usuario[] resultadosDirectos = indiceHabilidades.buscarPorHabilidad(habilidad);
-                String descripcionOptimizada = "Búsqueda Indexada por Habilidad: " + habilidad;
-                BuscadorPerfiles.imprimirResultados(resultadosDirectos, descripcionOptimizada);
-                return; // Retorno temprano: se evita ejecutar el método secuencial realizarBusqueda(...)
+                break;
             case 5:
                 subespecialidad = preguntarSubespecialidad(scanner);
                 break;
@@ -74,7 +67,6 @@ public class BuscadorPerfilesUI {
                 return;
         }
 
-        // Realizamos la búsqueda tradicional lineal en O(N) solo para filtros compuestos o estructurales
         realizarBusqueda(plataforma, especialidad, subespecialidad, habilidad);
     }
 

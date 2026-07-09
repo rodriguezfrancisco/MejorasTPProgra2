@@ -1,8 +1,7 @@
 import Interfaces.*;
 import TDA.Arbol_Categoria;
 import TDA.DiccionarioUsuarios;
-import TDA.GrafoListaAdyacencia; // ACTUALIZADO
-import TDA.IndiceInvertidoHabilidades; // NUEVO
+import TDA.GrafoListaAdyacencia;
 import controller.GestorPerfil;
 import controller.GestorPostulaciones;
 import model.*;
@@ -24,11 +23,9 @@ public class ProgramaPrincipal {
         GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia(100, false);
         GestorPostulaciones gestorPostulaciones = new GestorPostulaciones(50);
 
-        //Instanciamos el índice invertido para búsquedas O(1)
-        IndiceInvertidoHabilidades indiceHabilidades = new IndiceInvertidoHabilidades(200);
 
         // ACTUALIZADO: Le pasamos el índice al precargador
-        precargarUsuarios(plataforma, redSocial, catalogoGeneral, indiceHabilidades);
+        precargarUsuarios(plataforma, redSocial, catalogoGeneral);
 
         int opcion;
 
@@ -45,9 +42,9 @@ public class ProgramaPrincipal {
             System.out.println("5. Eliminar usuario de la plataforma");
             System.out.println("6. Conectar dos usuarios (Agregar Amistad)");
             System.out.println("7. Eliminar conexión entre dos usuarios"); // NUEVA OPCIÓN
-            System.out.println("8. Ver recomendaciones y red de un usuario"); // Era la 7
-            System.out.println("9. Gestion de postulaciones"); // Era la 8
-            System.out.println("10. Buscar usuarios por perfil"); // Era la 9
+            System.out.println("8. Ver recomendaciones y red de un usuario");
+            System.out.println("9. Gestion de postulaciones");
+            System.out.println("10. Buscar usuarios por perfil");
             System.out.println("0. Salir");
 
             // ACTUALIZADO: El rango ahora va hasta 10
@@ -59,7 +56,6 @@ public class ProgramaPrincipal {
                     boolean exito = plataforma.insertar(nuevoUsuario);
                     if (exito) {
                         redSocial.insertarVertice(nuevoUsuario);
-                        indiceHabilidades.indexarUsuario(nuevoUsuario);
                         System.out.println("-> Usuario guardado exitosamente en la plataforma, red social e índice.");
                     } else {
                         System.out.println("-> ERROR inesperado al guardar el usuario.");
@@ -223,7 +219,7 @@ public class ProgramaPrincipal {
                     break;
 
                 case 10:
-                    BuscadorPerfilesUI.menuBuscar(scanner, plataforma, catalogoGeneral, indiceHabilidades);
+                    BuscadorPerfilesUI.menuBuscar(scanner, plataforma, catalogoGeneral);
                     break;
 
                 case 0:
@@ -545,7 +541,7 @@ public class ProgramaPrincipal {
         return raiz;
     }
 
-    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz, IndiceInvertidoHabilidades indice) {
+    private static void precargarUsuarios(DiccionarioUsuarios plataforma, GrafoListaAdyacencia redSocial, Arbol_Categoria raiz) {
         Componente[] especialidades = raiz.getHijos();
 
         Arbol_Categoria tecnologia = buscarCategoria(especialidades, "Tecnologia");
@@ -565,7 +561,6 @@ public class ProgramaPrincipal {
 
                 plataforma.insertar(u1);
                 redSocial.insertarVertice(u1);
-                indice.indexarUsuario(u1);
             }
         }
 
@@ -582,7 +577,6 @@ public class ProgramaPrincipal {
 
                 plataforma.insertar(u2);
                 redSocial.insertarVertice(u2);
-                indice.indexarUsuario(u2);
             }
         }
 
@@ -599,7 +593,6 @@ public class ProgramaPrincipal {
 
                 plataforma.insertar(u3);
                 redSocial.insertarVertice(u3);
-                indice.indexarUsuario(u3);
             }
         }
 
