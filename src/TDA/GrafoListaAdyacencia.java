@@ -32,14 +32,16 @@ public class GrafoListaAdyacencia implements IGrafo {
 
     @Override
     public void insertarVertice(Usuario vertice) {
+        // Si llegamos al límite de los arreglos, los duplicamos
         if (cantidad == capacidad) {
-            System.out.println("La red social está llena.");
-            return;
+            redimensionar();
         }
+
         if (existeVertice(vertice)) {
             System.out.println("El usuario ya existe en la red.");
             return;
         }
+
         vertices[cantidad] = vertice;
         listasAdyacencia[cantidad] = null; // Inicializa la lista de amigos vacía
         cantidad++;
@@ -313,4 +315,25 @@ public class GrafoListaAdyacencia implements IGrafo {
         if (nivel == 2) return "Amigo de amigo";
         return "Conexión lejana";
     }
+
+    // Método privado para duplicar el tamaño del grafo dinámicamente
+    private void redimensionar() {
+        int nuevaCapacidad = capacidad * 2;
+
+        Usuario[] nuevosVertices = new Usuario[nuevaCapacidad];
+        NodoArista[] nuevasListas = new NodoArista[nuevaCapacidad];
+
+        // Copiamos los datos existentes a los arreglos más grandes
+        for (int i = 0; i < cantidad; i++) {
+            nuevosVertices[i] = vertices[i];
+            nuevasListas[i] = listasAdyacencia[i];
+        }
+
+        // Actualizamos las referencias y la capacidad
+        this.vertices = nuevosVertices;
+        this.listasAdyacencia = nuevasListas;
+        this.capacidad = nuevaCapacidad;
+
+    }
+
 }
