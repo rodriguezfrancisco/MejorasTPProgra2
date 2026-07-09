@@ -56,9 +56,8 @@ public class ConjuntoCadenas {
         return true;
     }
 
-    /**
-     * Verifica en tiempo constante O(1) si el elemento pertenece al conjunto.
-     */
+
+    //Verifica en tiempo constante O(1) si el elemento pertenece al conjunto.
     public boolean pertenece(String valor) {
         if (valor == null) return false;
 

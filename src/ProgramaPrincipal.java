@@ -596,7 +596,7 @@ public class ProgramaPrincipal {
             }
         }
 
-        System.out.println("⚙️ [Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
+        System.out.println("[Sistema] Se han precargado 3 usuarios de prueba con perfiles configurados.");
     }
 
     private static Arbol_Categoria buscarCategoria(Componente[] componentes, String nombre) {

@@ -33,10 +33,7 @@ public class SolicitudEmpleo implements Comparable<SolicitudEmpleo> {
         return fechaLlegada;
     }
 
-    /**
-     * Calcula un puntaje de compatibilidad (Matching Score) entre el usuario y el puesto.
-     * Esto actúa como el atributo "prioridad" de las diapositivas de clase.
-     */
+    //Calcula un puntaje de compatibilidad (Matching Score) entre el usuario y el puesto.
     public int calcularScoreMatching() {
         int score = 0;
 
