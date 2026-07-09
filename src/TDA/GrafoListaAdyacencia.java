@@ -112,9 +112,8 @@ public class GrafoListaAdyacencia implements IGrafo {
     private NodoVertice primerVertice; // Cabeza de la Lista Principal de Usuarios
     private boolean dirigido;
 
-    // Se mantiene la firma por compatibilidad con el Main, pero "capacidad" ya no se usa porque
-    // la Lista de Listas es de crecimiento infinito.
-    public GrafoListaAdyacencia(int capacidad, boolean dirigido) {
+
+    public GrafoListaAdyacencia(boolean dirigido) {
         this.primerVertice = null;
         this.dirigido = dirigido;
     }
@@ -304,12 +303,26 @@ public class GrafoListaAdyacencia implements IGrafo {
         ejecutarBFS(inicio);
 
         System.out.println("Niveles de conexión para " + usuario);
+
+        //Encontramos cuál fue el nivel máximo alcanzado en este recorrido
+        int maxNivel = 0;
         NodoVertice actual = primerVertice;
         while (actual != null) {
-            if (actual.nivel > 0) {
-                System.out.println(" - Nivel " + actual.nivel + " (" + getNivelDesc(actual.nivel) + "): " + actual.usuario);
+            if (actual.nivel > maxNivel) {
+                maxNivel = actual.nivel;
             }
             actual = actual.siguienteVertice;
+        }
+
+        // Imprimimos secuencialmente nivel por nivel
+        for (int i = 1; i <= maxNivel; i++) {
+            actual = primerVertice; // Volvemos al inicio de la lista
+            while (actual != null) {
+                if (actual.nivel == i) {
+                    System.out.println(" - Nivel " + actual.nivel + " (" + getNivelDesc(actual.nivel) + "): " + actual.usuario);
+                }
+                actual = actual.siguienteVertice;
+            }
         }
     }
 

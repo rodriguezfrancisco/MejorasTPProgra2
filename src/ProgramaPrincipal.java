@@ -20,7 +20,7 @@ public class ProgramaPrincipal {
         DiccionarioUsuarios plataforma = new DiccionarioUsuarios(100);
         GestorPerfil gestorPerfil = new GestorPerfil(10, catalogoGeneral);
 
-        GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia(100, false);
+        GrafoListaAdyacencia redSocial = new GrafoListaAdyacencia( false);
         GestorPostulaciones gestorPostulaciones = new GestorPostulaciones(50);
 
 
