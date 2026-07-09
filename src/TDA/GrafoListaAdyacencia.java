@@ -5,41 +5,48 @@ import Interfaces.IGrafo;
 
 public class GrafoListaAdyacencia implements IGrafo {
 
-
-    //Clase interna que representa una conexión (arista) en la lista enlazada.
+    //Nodo secundario: Representa una conexión (arista) en la lista de amigos.
 
     private class Arista {
-        Vertice destino; // Apunta directamente al objeto, no a un índice numérico
+        NodoVertice destino; // Puntero directo al objeto amigo
         Arista siguiente;
 
-        public Arista(Vertice destino) {
+        public Arista(NodoVertice destino) {
             this.destino = destino;
             this.siguiente = null;
         }
     }
 
+    // Nodo principal: Representa al Usuario y gestiona su propia lista de adyacencias.
+    // También actúa como eslabón en la lista enlazada principal del Grafo.
 
-     //Clase interna que encapsula a un Usuario y se hace cargo de gestionar
-     //su propia lista de conexiones.
-
-    private class Vertice {
+    private class NodoVertice {
         Usuario usuario;
-        Arista primerAdyacente; // Cabeza de la lista enlazada de amigos
 
-        public Vertice(Usuario usuario) {
+        Arista primerAdyacente;        // Cabeza de la sub-lista (amigos)
+        NodoVertice siguienteVertice;  // Puntero al siguiente usuario de la plataforma
+
+        // Atributos auxiliares para reemplazar a los arreglos en los algoritmos de grafos
+        boolean visitado;
+        int nivel;
+
+        public NodoVertice(Usuario usuario) {
             this.usuario = usuario;
             this.primerAdyacente = null;
+            this.siguienteVertice = null;
+            this.visitado = false;
+            this.nivel = -1;
         }
 
-        // El propio vértice sabe cómo agregar un amigo a su lista (O(1))
-        public void agregarAdyacencia(Vertice destino) {
+        // El propio vértice agrega un amigo a su lista enlazada (O(1))
+        public void agregarAdyacencia(NodoVertice destino) {
             Arista nueva = new Arista(destino);
             nueva.siguiente = this.primerAdyacente;
             this.primerAdyacente = nueva;
         }
 
-        // El propio vértice sabe cómo eliminar a un amigo de su lista
-        public void eliminarAdyacencia(Vertice destino) {
+        // El propio vértice elimina un amigo de su lista enlazada (O(E))
+        public void eliminarAdyacencia(NodoVertice destino) {
             if (this.primerAdyacente == null) return;
 
             if (this.primerAdyacente.destino == destino) {
@@ -57,8 +64,7 @@ public class GrafoListaAdyacencia implements IGrafo {
             }
         }
 
-        // El propio vértice sabe si es amigo de alguien
-        public boolean tieneAdyacencia(Vertice destino) {
+        public boolean tieneAdyacencia(NodoVertice destino) {
             Arista actual = this.primerAdyacente;
             while (actual != null) {
                 if (actual.destino == destino) return true;
@@ -69,82 +75,92 @@ public class GrafoListaAdyacencia implements IGrafo {
     }
 
     // ==========================================
+    // ESTRUCTURA AUXILIAR PARA ALGORITMOS
+    // ==========================================
+
+    // Cola enlazada simple para el BFS (para no usar arreglos estáticos)
+    private class ColaNodos {
+        private class NodoCola {
+            NodoVertice vertice;
+            NodoCola siguiente;
+            public NodoCola(NodoVertice v) { this.vertice = v; this.siguiente = null; }
+        }
+        private NodoCola frente, fin;
+
+        public void encolar(NodoVertice v) {
+            NodoCola nuevo = new NodoCola(v);
+            if (frente == null) frente = fin = nuevo;
+            else { fin.siguiente = nuevo; fin = nuevo; }
+        }
+
+        public NodoVertice desencolar() {
+            if (frente == null) return null;
+            NodoVertice v = frente.vertice;
+            frente = frente.siguiente;
+            if (frente == null) fin = null;
+            return v;
+        }
+
+        public boolean estaVacia() { return frente == null; }
+    }
+
+
+    // ==========================================
     // LÓGICA PRINCIPAL DEL GRAFO
     // ==========================================
 
-    private Vertice[] vertices;
-    private int cantidad;
-    private int capacidad;
+    private NodoVertice primerVertice; // Cabeza de la Lista Principal de Usuarios
     private boolean dirigido;
 
+    // Se mantiene la firma por compatibilidad con el Main, pero "capacidad" ya no se usa porque
+    // la Lista de Listas es de crecimiento infinito.
     public GrafoListaAdyacencia(int capacidad, boolean dirigido) {
-        this.capacidad = capacidad;
+        this.primerVertice = null;
         this.dirigido = dirigido;
-        this.cantidad = 0;
-        this.vertices = new Vertice[capacidad];
-    }
-
-    // Método para crecer infinitamente
-    private void redimensionar() {
-        int nuevaCapacidad = capacidad * 2;
-        Vertice[] nuevosVertices = new Vertice[nuevaCapacidad];
-        for (int i = 0; i < cantidad; i++) {
-            nuevosVertices[i] = vertices[i];
-        }
-        this.vertices = nuevosVertices;
-        this.capacidad = nuevaCapacidad;
     }
 
     @Override
     public void insertarVertice(Usuario usuario) {
-        if (cantidad == capacidad) {
-            redimensionar();
-        }
         if (existeVertice(usuario)) {
             System.out.println("El usuario ya existe en la red.");
             return;
         }
-        // Creamos el Objeto Vértice que ahora contiene al usuario y su lista vacía
-        vertices[cantidad] = new Vertice(usuario);
-        cantidad++;
+
+        // Insertamos al principio de la lista principal (O(1))
+        NodoVertice nuevoVertice = new NodoVertice(usuario);
+        nuevoVertice.siguienteVertice = this.primerVertice;
+        this.primerVertice = nuevoVertice;
     }
 
     @Override
     public boolean existeVertice(Usuario usuario) {
-        return obtenerIndice(usuario) != -1;
+        return obtenerVertice(usuario) != null;
     }
 
-    // Devuelve la posición en el arreglo (necesaria para el DFS y BFS)
-    private int obtenerIndice(Usuario usuario) {
-        for (int i = 0; i < cantidad; i++) {
-            if (vertices[i] != null && vertices[i].usuario.esIgual(usuario)) {
-                return i;
+    // Método privado para buscar un nodo atravesando la lista principal (O(V))
+    private NodoVertice obtenerVertice(Usuario usuario) {
+        NodoVertice actual = primerVertice;
+        while (actual != null) {
+            if (actual.usuario.esIgual(usuario)) {
+                return actual;
             }
+            actual = actual.siguienteVertice;
         }
-        return -1;
-    }
-
-    // Método auxiliar para recuperar el objeto Vertice completo
-    private Vertice obtenerVertice(Usuario usuario) {
-        int index = obtenerIndice(usuario);
-        return (index != -1) ? vertices[index] : null;
+        return null;
     }
 
     @Override
     public void insertarArista(Usuario origen, Usuario destino) {
-        Vertice vOrigen = obtenerVertice(origen);
-        Vertice vDestino = obtenerVertice(destino);
+        NodoVertice vOrigen = obtenerVertice(origen);
+        NodoVertice vDestino = obtenerVertice(destino);
 
         if (vOrigen == null || vDestino == null) {
             System.out.println("Uno de los usuarios no existe.");
             return;
         }
 
-        if (vOrigen.tieneAdyacencia(vDestino)) {
-            return;
-        }
+        if (vOrigen.tieneAdyacencia(vDestino)) return;
 
-        // Delegamos la lógica al objeto
         vOrigen.agregarAdyacencia(vDestino);
 
         if (!dirigido) {
@@ -154,8 +170,8 @@ public class GrafoListaAdyacencia implements IGrafo {
 
     @Override
     public void eliminarArista(Usuario origen, Usuario destino) {
-        Vertice vOrigen = obtenerVertice(origen);
-        Vertice vDestino = obtenerVertice(destino);
+        NodoVertice vOrigen = obtenerVertice(origen);
+        NodoVertice vDestino = obtenerVertice(destino);
 
         if (vOrigen == null || vDestino == null) return;
 
@@ -167,88 +183,114 @@ public class GrafoListaAdyacencia implements IGrafo {
 
     @Override
     public boolean existeArista(Usuario origen, Usuario destino) {
-        Vertice vOrigen = obtenerVertice(origen);
-        Vertice vDestino = obtenerVertice(destino);
+        NodoVertice vOrigen = obtenerVertice(origen);
+        NodoVertice vDestino = obtenerVertice(destino);
 
         if (vOrigen == null || vDestino == null) return false;
-
         return vOrigen.tieneAdyacencia(vDestino);
     }
 
     @Override
     public void eliminarVertice(Usuario usuario) {
-        int pos = obtenerIndice(usuario);
-        if (pos == -1) return;
+        NodoVertice verticeAEliminar = obtenerVertice(usuario);
+        if (verticeAEliminar == null) return;
 
-        Vertice verticeAEliminar = vertices[pos];
-
-        // 1. Recorrer todos los vértices del sistema y pedirles que borren al usuario de sus listas
-        for (int i = 0; i < cantidad; i++) {
-            vertices[i].eliminarAdyacencia(verticeAEliminar);
+        // 1. Recorremos TODOS los usuarios y les pedimos que borren al usuario de sus sub-listas de amigos
+        NodoVertice iterador = primerVertice;
+        while (iterador != null) {
+            iterador.eliminarAdyacencia(verticeAEliminar);
+            iterador = iterador.siguienteVertice;
         }
 
-        // 2. Desplazar el arreglo general para tapar el hueco
-        for (int i = pos; i < cantidad - 1; i++) {
-            vertices[i] = vertices[i + 1];
+        // 2. Eliminamos al usuario de la lista principal de vértices
+        if (primerVertice == verticeAEliminar) {
+            primerVertice = primerVertice.siguienteVertice;
+            return;
         }
 
-        cantidad--;
-        vertices[cantidad] = null;
+        iterador = primerVertice;
+        while (iterador.siguienteVertice != null) {
+            if (iterador.siguienteVertice == verticeAEliminar) {
+                iterador.siguienteVertice = iterador.siguienteVertice.siguienteVertice;
+                return;
+            }
+            iterador = iterador.siguienteVertice;
+        }
     }
 
     @Override
     public void mostrarVertices() {
         System.out.print("Usuarios registrados: ");
-        for (int i = 0; i < cantidad; i++) {
-            System.out.print(vertices[i].usuario + " ");
+        NodoVertice actual = primerVertice;
+        while (actual != null) {
+            System.out.print(actual.usuario + " ");
+            actual = actual.siguienteVertice;
         }
         System.out.println();
     }
 
     @Override
     public void mostrarMatriz() {
+        // En una "Lista de Listas" imprimir una matriz es costoso pero útil visualmente
         System.out.println("Matriz de Conexiones:");
         System.out.print("         ");
-        for (int i = 0; i < cantidad; i++) {
-            System.out.printf("%-9s", vertices[i].usuario.getNombre());
+
+        NodoVertice col = primerVertice;
+        while (col != null) {
+            System.out.printf("%-9s", col.usuario.getNombre());
+            col = col.siguienteVertice;
         }
         System.out.println();
 
-        for (int i = 0; i < cantidad; i++) {
-            System.out.printf("%-9s", vertices[i].usuario.getNombre());
-            for (int j = 0; j < cantidad; j++) {
-                // Consultamos directamente al objeto si tiene la conexión
-                int conectado = vertices[i].tieneAdyacencia(vertices[j]) ? 1 : 0;
+        NodoVertice fila = primerVertice;
+        while (fila != null) {
+            System.out.printf("%-9s", fila.usuario.getNombre());
+            col = primerVertice;
+            while (col != null) {
+                int conectado = fila.tieneAdyacencia(col) ? 1 : 0;
                 System.out.printf("%-9d", conectado);
+                col = col.siguienteVertice;
             }
             System.out.println();
+            fila = fila.siguienteVertice;
+        }
+    }
+
+    // ==========================================
+    // ALGORITMOS (BFS / DFS)
+    // ==========================================
+
+    private void reiniciarEstadosGrafos() {
+        NodoVertice actual = primerVertice;
+        while (actual != null) {
+            actual.visitado = false;
+            actual.nivel = -1;
+            actual = actual.siguienteVertice;
         }
     }
 
     @Override
     public void dfsAlcance(Usuario usuario) {
-        int inicio = obtenerIndice(usuario);
-        if (inicio == -1) {
+        NodoVertice inicio = obtenerVertice(usuario);
+        if (inicio == null) {
             System.out.println("El usuario no existe.");
             return;
         }
 
-        boolean[] visitados = new boolean[cantidad];
+        reiniciarEstadosGrafos(); // Limpiamos la bandera 'visitado' en todos los nodos
         System.out.print("Alcance de red de " + usuario + " (DFS): ");
-        dfsRecursivo(inicio, visitados);
+        dfsRecursivo(inicio);
         System.out.println();
     }
 
-    private void dfsRecursivo(int vIndex, boolean[] visitados) {
-        visitados[vIndex] = true;
-        Vertice actual = vertices[vIndex];
+    private void dfsRecursivo(NodoVertice actual) {
+        actual.visitado = true;
         System.out.print(actual.usuario + " ");
 
         Arista aristaActual = actual.primerAdyacente;
         while (aristaActual != null) {
-            int destinoIndex = obtenerIndice(aristaActual.destino.usuario);
-            if (destinoIndex != -1 && !visitados[destinoIndex]) {
-                dfsRecursivo(destinoIndex, visitados);
+            if (!aristaActual.destino.visitado) {
+                dfsRecursivo(aristaActual.destino);
             }
             aristaActual = aristaActual.siguiente;
         }
@@ -256,30 +298,38 @@ public class GrafoListaAdyacencia implements IGrafo {
 
     @Override
     public void bfsNiveles(Usuario usuario) {
-        int[] niveles = calcularNivelesBFS(usuario);
-        if (niveles == null) return;
+        NodoVertice inicio = obtenerVertice(usuario);
+        if (inicio == null) return;
+
+        ejecutarBFS(inicio);
 
         System.out.println("Niveles de conexión para " + usuario);
-        for (int i = 0; i < cantidad; i++) {
-            if (niveles[i] > 0) {
-                System.out.println(" - Nivel " + niveles[i] + " (" + getNivelDesc(niveles[i]) + "): " + vertices[i].usuario);
+        NodoVertice actual = primerVertice;
+        while (actual != null) {
+            if (actual.nivel > 0) {
+                System.out.println(" - Nivel " + actual.nivel + " (" + getNivelDesc(actual.nivel) + "): " + actual.usuario);
             }
+            actual = actual.siguienteVertice;
         }
     }
 
     @Override
     public void recomendarAmigos(Usuario usuario) {
-        int[] niveles = calcularNivelesBFS(usuario);
-        if (niveles == null) return;
+        NodoVertice inicio = obtenerVertice(usuario);
+        if (inicio == null) return;
+
+        ejecutarBFS(inicio);
 
         System.out.println("Recomendaciones de amistad para " + usuario + ":");
         boolean hayRecomendaciones = false;
 
-        for (int i = 0; i < cantidad; i++) {
-            if (niveles[i] == 2) {
-                System.out.println(" - Conectar con: " + vertices[i].usuario + " (Tienen amigos en común)");
+        NodoVertice actual = primerVertice;
+        while (actual != null) {
+            if (actual.nivel == 2) { // Un nivel 2 significa que es "amigo de amigo"
+                System.out.println(" - Conectar con: " + actual.usuario + " (Tienen amigos en común)");
                 hayRecomendaciones = true;
             }
+            actual = actual.siguienteVertice;
         }
 
         if (!hayRecomendaciones) {
@@ -287,45 +337,28 @@ public class GrafoListaAdyacencia implements IGrafo {
         }
     }
 
-    private int[] calcularNivelesBFS(Usuario origen) {
-        int inicio = obtenerIndice(origen);
-        if (inicio == -1) {
-            System.out.println("El usuario no existe.");
-            return null;
-        }
+    private void ejecutarBFS(NodoVertice inicio) {
+        reiniciarEstadosGrafos();
 
-        int[] niveles = new int[cantidad];
-        for (int i = 0; i < cantidad; i++) {
-            niveles[i] = -1;
-        }
+        ColaNodos cola = new ColaNodos();
+        cola.encolar(inicio);
+        inicio.nivel = 0;
 
-        int[] cola = new int[capacidad];
-        int frente = 0;
-        int fin = 0;
+        while (!cola.estaVacia()) {
+            NodoVertice actual = cola.desencolar();
 
-        cola[fin] = inicio;
-        fin++;
-        niveles[inicio] = 0;
-
-        while (frente < fin) {
-            int indexActual = cola[frente];
-            frente++;
-
-            Vertice verticeActual = vertices[indexActual];
-            Arista aristaActual = verticeActual.primerAdyacente;
-
+            Arista aristaActual = actual.primerAdyacente;
             while (aristaActual != null) {
-                int destinoIndex = obtenerIndice(aristaActual.destino.usuario);
-                if (destinoIndex != -1 && niveles[destinoIndex] == -1) {
-                    niveles[destinoIndex] = niveles[indexActual] + 1;
-                    cola[fin] = destinoIndex;
-                    fin++;
+                NodoVertice vecino = aristaActual.destino;
+
+                // Si el nivel es -1, significa que no lo hemos visitado
+                if (vecino.nivel == -1) {
+                    vecino.nivel = actual.nivel + 1;
+                    cola.encolar(vecino);
                 }
                 aristaActual = aristaActual.siguiente;
             }
         }
-
-        return niveles;
     }
 
     private String getNivelDesc(int nivel) {
