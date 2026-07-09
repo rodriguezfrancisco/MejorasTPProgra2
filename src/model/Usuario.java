@@ -1,17 +1,21 @@
 package model;
+import TDA.ConjuntoCadenas;
 
 public class Usuario implements Comparable<Usuario> {
 
     private int id;
     private String nombre;
     private String mail;
-    private Perfil perfil; // Un único perfil
+    private Perfil perfil;
+
+    private ConjuntoCadenas postulacionesRealizadas;
 
     // Constructor completo
     public Usuario(String nombre, int id, String mail, Perfil perfil) {
         this.nombre = nombre;
         this.id = id;
         this.mail = mail;
+        this.postulacionesRealizadas = new ConjuntoCadenas(20);
 
         if (perfil != null) {
             this.perfil = new Perfil(perfil); // Constructor copia
@@ -26,6 +30,10 @@ public class Usuario implements Comparable<Usuario> {
         this.id = otro.id;
         this.mail = otro.mail;
 
+        // Mantenemos la referencia al mismo conjunto porque el historial
+        // de deshacer solo afecta al perfil, no a los trabajos a los que ya aplicó.
+        this.postulacionesRealizadas = otro.postulacionesRealizadas;
+
         if (otro.perfil != null) {
             this.perfil = new Perfil(otro.perfil);
         } else {
@@ -39,6 +47,7 @@ public class Usuario implements Comparable<Usuario> {
         this.id = id;
         this.mail = mail;
         this.perfil = null;
+        this.postulacionesRealizadas = new ConjuntoCadenas(20);
     }
 
     // Getters
@@ -77,6 +86,14 @@ public class Usuario implements Comparable<Usuario> {
         } else {
             this.perfil = null;
         }
+    }
+
+    public boolean registrarPostulacion(String nombrePuesto) {
+        return postulacionesRealizadas.agregar(nombrePuesto);
+    }
+
+    public boolean yaSePostulo(String nombrePuesto) {
+        return postulacionesRealizadas.pertenece(nombrePuesto);
     }
 
     public boolean esIgual(Usuario otro) {

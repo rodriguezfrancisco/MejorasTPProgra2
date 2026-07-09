@@ -15,11 +15,26 @@ public class GestorPostulaciones {
     }
 
     public void recibirSolicitud(SolicitudEmpleo solicitud) {
+        Usuario candidato = solicitud.getPostulante();
+        String nombrePuesto = solicitud.getPuesto().getNombrePuesto();
+
+        // 1. BARRERA DE UNICIDAD: Consultamos al Conjunto en O(1)
+        if (candidato.yaSePostulo(nombrePuesto)) {
+            System.out.println("❌ Solicitud rechazada: El usuario '" + candidato.getNombre() +
+                    "' ya se había postulado previamente a este puesto.");
+            return; // Cortamos la ejecución, evitando duplicados en la cola
+        }
+
+        // 2. Si pasó la barrera, intentamos encolar
         if (!colaDeEspera.estaLlena()) {
-            colaDeEspera.insertar(solicitud);
-            System.out.println("✅ Solicitud registrada y encolada por relevancia: " + solicitud);
+            boolean exito = colaDeEspera.insertar(solicitud);
+            if (exito) {
+                // Si entró a la cola, lo registramos en su conjunto personal
+                candidato.registrarPostulacion(nombrePuesto);
+                System.out.println("✅ Solicitud registrada y encolada por relevancia: " + solicitud);
+            }
         } else {
-            System.out.println("No se pudo registrar la solicitud, la cola está llena.");
+            System.out.println("❌ No se pudo registrar la solicitud, la cola de la empresa está llena.");
         }
     }
 
